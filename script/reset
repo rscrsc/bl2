@@ -1,0 +1,4 @@
+#!/bin/sh
+
+sudo iptables -t raw -F
+sudo iptables -t mangle -F

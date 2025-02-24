@@ -1,0 +1,4 @@
+#!/bin/sh
+#sudo iptables -t raw -A PREROUTING -i wlan0 -j NFQUEUE --queue-num 0
+#sudo iptables -t raw -A OUTPUT -o wlan0 -j NFQUEUE --queue-num 0
+sudo iptables -t mangle -A FORWARD -o wlan0 -j NFQUEUE --queue-num 0
