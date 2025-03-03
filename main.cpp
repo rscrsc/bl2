@@ -13,6 +13,7 @@
 #include <chrono>
 
 #include "NFQueue.h"
+#include "Udp.h"
 
 constexpr timespec TIMEOUT { .tv_sec=0, .tv_nsec=1'000'000 };
 
@@ -95,6 +96,9 @@ public:
 };
 
 int main() {
+Udp udp("192.168.69.139", 12345);
+udp.send();
+return 0;
 std::thread eh(eventHandler);
 try{
     NFQueue nfq(0, &onPacket);

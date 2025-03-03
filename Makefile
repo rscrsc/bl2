@@ -6,13 +6,16 @@ all: build/ build/main
 	-sudo build/main
 	./script/reset
 
-build/main: build/main.o build/NFQueue.o
+build/main: build/main.o build/NFQueue.o build/Udp.o
 	c++ -o $@ $^ $(LDFLAGS)
 
-build/main.o: main.cpp NFQueue.h
+build/main.o: main.cpp NFQueue.h Udp.h
 	c++ -o $@ -c $< $(CFLAGS) 
 
 build/NFQueue.o: NFQueue.cpp NFQueue.h
+	c++ -o $@ -c $< $(CFLAGS) 
+
+build/Udp.o: Udp.cpp Udp.h
 	c++ -o $@ -c $< $(CFLAGS) 
 
 build/:
