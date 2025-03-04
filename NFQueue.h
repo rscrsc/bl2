@@ -4,8 +4,9 @@
 #define NOFLAG 0
 
 #include <unistd.h>
-#include <cstdint>
+#include <sys/epoll.h>
 
+#include <cstdint>
 #include <memory>
 #include <array>
 #include <exception>
@@ -21,6 +22,7 @@ public:
     std::unique_ptr<nfq_q_handle, decltype(&nfq_destroy_queue)> queue{nullptr, &nfq_destroy_queue}; 
     uint16_t queueNum;
     int sockFd;
+    epoll_event ev{};
     alignas(8) std::array<char, 4096> packetBuffer;
 
     NFQueue (uint16_t queueNum, nfq_callback* cb);

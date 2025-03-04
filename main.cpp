@@ -1,6 +1,4 @@
-#include <poll.h>
 #include <arpa/inet.h> 
-#include <sys/epoll.h>
 #include <sys/timerfd.h>
 
 #include <iostream>
@@ -77,10 +75,10 @@ int onPacket(struct nfq_q_handle* qh, struct nfgenmsg* nfmsg, struct nfq_data* n
     if (nfq_set_verdict(qh, ntohl(pkt->packet_id), NF_ACCEPT, 0u, nullptr) == -1) {
         throw std::runtime_error("unable to set verdict");
     }
-    std::cout << "\033[2J\033[H";
-    dumpTime(std::cout);
-    std::cout << "  ";
-    dump(payload, 16, std::cout);
+    //std::cout << "\033[2J\033[H";
+    //dumpTime(std::cout);
+    //std::cout << "  ";
+    //dump(payload, 16, std::cout);
     return 0;
 }
 
@@ -96,22 +94,20 @@ public:
 };
 
 int main() {
-Udp udp("192.168.69.139", 12345);
-udp.send();
-return 0;
 std::thread eh(eventHandler);
 try{
-    NFQueue nfq(0, &onPacket);
+    NFQueue nfqA(0, &onPacket);
+    NFQueue nfqB(1, &onPacket);
     UniqueFd epollUFd(epoll_create1(NOFLAG));
     int epollFd = epollUFd.fd;
     if (epollFd == -1) {
         throw std::runtime_error("unable to create epoll fd");
     }
-    {
-        epoll_event ev{ .events = EPOLLIN, .data = {.fd=nfq.sockFd} };
-        if (epoll_ctl(epollFd, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1) {
-            throw std::runtime_error("unable to add an event to epoll");
-        }
+    if (epoll_ctl(epollFd, EPOLL_CTL_ADD, nfqA.ev.data.fd, &nfqA.ev) == -1) {
+        throw std::runtime_error("unable to add an event to epoll");
+    }
+    if (epoll_ctl(epollFd, EPOLL_CTL_ADD, nfqB.ev.data.fd, &nfqB.ev) == -1) {
+        throw std::runtime_error("unable to add an event to epoll");
     }
     UniqueFd timerUFd(timerfd_create(CLOCK_MONOTONIC, 0));
     int timerFd = timerUFd.fd;
@@ -129,23 +125,44 @@ try{
             throw std::runtime_error("unable to add an event to epoll");
         }
     }
+    Udp udpA("192.168.69.139", 12345);
+    Udp udpB("192.168.69.67", 12345);
+    int queueNow = 1;
     while (running) {
-        std::array<epoll_event, 2> events;
-        int rPoll = epoll_wait(epollFd, events.data(), events.size(), -1); 
+        std::array<epoll_event, 3> evBuffer;
+        int rPoll = epoll_wait(epollFd, evBuffer.data(), evBuffer.size(), -1); 
         if (rPoll < 0) {
             throw std::runtime_error("failed waiting epoll");
         }
+        bool hasA = false, hasB = false;
         for (int i = 0; i < rPoll; ++i) {
-            if (events[i].data.fd == timerFd) {
+            if (evBuffer[i].data.fd == nfqA.sockFd) {
+                nfqA.process();
+                hasA = true;
+            }
+            if (evBuffer[i].data.fd == nfqB.sockFd) {
+                nfqB.process();
+                hasB = true;
+            }
+            if (evBuffer[i].data.fd == timerFd) {
+                queueNow = (queueNow + 1) % 2;
+
                 uint64_t expirations;
                 read(timerFd, &expirations, sizeof(expirations));
                 timerfd_settime(timerFd, NOFLAG, &timerSpec, nullptr);
-                std::cout << "\033[2J\033[H";
-                dumpTime(std::cout);
-                std::cout << "  ";
-                std::cout << "========= No Packet Sent =========" << std::endl;
-            } else if (events[i].data.fd == nfq.sockFd) {
-                nfq.process();
+                if (queueNow == 0 && (!hasA)) {
+                    udpA.send();
+                    //std::cout << "\033[2J\033[H";
+                    //dumpTime(std::cout);
+                    //std::cout << "  ";
+                    //std::cout << "Sent complement UDP to A" << std::endl;
+                } else if (queueNow == 1 && (!hasB)) {
+                    udpB.send();
+                    //std::cout << "\033[2J\033[H";
+                    //dumpTime(std::cout);
+                    //std::cout << "  ";
+                    //std::cout << "Sent complement UDP to B" << std::endl;
+                }
             }
         }
     }

@@ -33,4 +33,6 @@ NFQueue::NFQueue (uint16_t queueNum, nfq_callback* cb)
         throw std::runtime_error("NFQueue: unable to set queue mode");
     }
     sockFd = nfq_fd(ctx.get());
+    ev.events = EPOLLIN;
+    ev.data.fd = sockFd;
 }
