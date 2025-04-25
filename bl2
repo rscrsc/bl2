@@ -1,0 +1,5 @@
+#!/bin/sh
+
+bl2-setup $@
+bl2-main $@
+bl2-reset
