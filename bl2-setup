@@ -1,4 +1,29 @@
 #!/bin/sh
 
 echo "Setting up..."
-echo $@
+
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -t|--timeIntv)
+      TIME_INTV="$2"
+      shift
+      shift
+      ;;
+    -*|--*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+q_i=0
+for ip in ${POSITIONAL_ARGS[@]}; do
+    iptables -t mangle -A FORWARD -o br0-ap1 -p tcp -d $ip -j NFQUEUE --queue-num $q_i
+    q_i=$((q_i + 1))
+done
