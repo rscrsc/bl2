@@ -1,15 +1,16 @@
 #!/bin/bash
 
-echo "Setting up..."
-
 POSITIONAL_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    -t|--timeIntv)
+    -t)
       TIME_INTV="$2"
       shift
       shift
+      ;;
+    -h|--help)
+      exit 0
       ;;
     -*|--*)
       echo "Unknown option $1"
@@ -21,6 +22,8 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+echo "Setting up..."
 
 q_i=0
 for ip in ${POSITIONAL_ARGS[@]}; do
