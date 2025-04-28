@@ -25,6 +25,7 @@ std::thread eh(utils::eventHandler);
 args::ArgumentParser parser("Default prompt");
 args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
 args::ValueFlag<double> timeIntv(parser, "timeIntv", "Time interval (in sec)", {'t'});
+args::ImplicitValueFlag<int> isActiveDelay(parser, "isActiveDelay", "Whether use active delay", {'d'});
 args::PositionalList<std::string> ips(parser, "ips", "Client IP list");
 
 try{
@@ -33,6 +34,7 @@ try{
     int timeIntvNsec = static_cast<int>((args::get(timeIntv) - timeIntvSec)*1'000'000'000);
     timespec TIMEOUT { .tv_sec=timeIntvSec, .tv_nsec=timeIntvNsec };
     std::vector<std::string>& ipStrs = args::get(ips);
+    std::cout << args::get(isActiveDelay) << std::endl;
 
     std::vector<NFQueue> nfqs;
     nfqs.reserve(ipStrs.size());
