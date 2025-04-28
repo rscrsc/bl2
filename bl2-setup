@@ -24,6 +24,6 @@ done
 
 q_i=0
 for ip in ${POSITIONAL_ARGS[@]}; do
-    iptables -t mangle -A FORWARD -o br0-ap1 -p tcp -d $ip -j NFQUEUE --queue-num $q_i
+    iptables -t mangle -A FORWARD -o br-lan -p tcp -d $ip -j NFQUEUE --queue-num $q_i
     q_i=$((q_i + 1))
 done
