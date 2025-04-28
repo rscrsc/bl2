@@ -46,7 +46,7 @@ try{
         throw std::runtime_error("unable to create epoll fd");
     }
 
-    for (int i = 0; i < ipCnt; ++i) {
+    for (int i = 0; i < ipStrs.size(); ++i) {
         if (epoll_ctl(epollFd, EPOLL_CTL_ADD, nfqs[i].ev.data.fd, &(nfqs[i].ev)) == -1) {
             throw std::runtime_error("unable to add an event to epoll");
         }
@@ -89,7 +89,7 @@ try{
         isRecv.resize(nfqs.size(), {});
         for (int i = 0; i < rPoll; ++i) {
             for (int j = 0; j < nfqs.size(); ++j) {
-                if (evBuffer[i].data.fd == nfq[i].sockFd) {
+                if (evBuffer[i].data.fd == nfqs[i].sockFd) {
                     nfqs[i].process();
                     isRecv[i] = true;
                 }
