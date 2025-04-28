@@ -20,8 +20,6 @@
 
 int main(int argc, char** argv) {
 
-std::thread eh(utils::eventHandler);
-
 args::ArgumentParser parser("Default prompt");
 args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
 args::ValueFlag<double> timeIntv(parser, "timeIntv", "Time interval (in sec)", {'t'});
@@ -30,6 +28,21 @@ args::PositionalList<std::string> ips(parser, "ips", "Client IP list");
 
 try{
     parser.ParseCLI(argc, argv);
+} catch (const args::Help&) {
+    std::cout << parser;
+    return 0;
+} catch (const args::ParseError& e) {
+    std::cerr << e.what() << std::endl;
+    std::cerr << parser;
+    return 1;
+} catch (const args::ValidationError& e) {
+    std::cerr << e.what() << std::endl;
+    std::cerr << parser;
+    return 1;
+}
+
+std::thread eh(utils::eventHandler);
+try {
     int timeIntvSec = static_cast<int>(args::get(timeIntv));
     int timeIntvNsec = static_cast<int>((args::get(timeIntv) - timeIntvSec)*1'000'000'000);
     timespec TIMEOUT { .tv_sec=timeIntvSec, .tv_nsec=timeIntvNsec };
@@ -123,17 +136,7 @@ try{
         }
     }
     eh.join();
-} catch (args::ParseError &e) {
-    std::cerr << e.what() << std::endl;
-    std::cerr << parser;
-    eh.join();
-    return 1;
-} catch (args::ValidationError &e) {
-    std::cerr << e.what() << std::endl;
-    std::cerr << parser;
-    eh.join();
-    return 1;
-} catch (std::exception &e) {
+} catch (const std::exception& e) {
     std::cerr << "[Error] " << e.what() << std::endl;
     eh.join();
     return 1;
