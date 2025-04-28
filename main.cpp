@@ -25,7 +25,7 @@ std::thread eh(utils::eventHandler);
 args::ArgumentParser parser("Default prompt");
 args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
 args::ValueFlag<double> timeIntv(parser, "timeIntv", "Time interval (in sec)", {'t'});
-args::ImplicitValueFlag<int> isActiveDelay(parser, "isActiveDelay", "Whether use active delay", {'d'});
+args::ImplicitValueFlag<int> activeDelay(parser, "activeDelay", "Whether use active delay", {'d'});
 args::PositionalList<std::string> ips(parser, "ips", "Client IP list");
 
 try{
@@ -34,7 +34,7 @@ try{
     int timeIntvNsec = static_cast<int>((args::get(timeIntv) - timeIntvSec)*1'000'000'000);
     timespec TIMEOUT { .tv_sec=timeIntvSec, .tv_nsec=timeIntvNsec };
     std::vector<std::string>& ipStrs = args::get(ips);
-    std::cout << args::get(isActiveDelay) << std::endl;
+    bool isActiveDelay = args::get(activeDelay)==1? true : false;
 
     std::vector<NFQueue> nfqs;
     nfqs.reserve(ipStrs.size());
@@ -90,10 +90,12 @@ try{
         std::vector<bool> isRecv;
         isRecv.resize(nfqs.size(), {});
         for (int i = 0; i < rPoll; ++i) {
-            for (int j = 0; j < nfqs.size(); ++j) {
-                if (evBuffer[i].data.fd == nfqs[j].sockFd) {
-                    nfqs[j].process();
-                    isRecv[j] = true;
+            if (!isActiveDelay) {
+                for (int j = 0; j < nfqs.size(); ++j) {
+                    if (evBuffer[i].data.fd == nfqs[j].sockFd) {
+                        nfqs[j].process();
+                        isRecv[j] = true;
+                    }
                 }
             }
             if (evBuffer[i].data.fd == timerFd) {
@@ -102,12 +104,20 @@ try{
                 uint64_t expirations;
                 read(timerFd, &expirations, sizeof(expirations));
                 timerfd_settime(timerFd, NOFLAG, &timerSpec, nullptr);
-                if (!isRecv[queueNow]) {
-                    fakers[queueNow].send();
-                    //std::cout << "\033[2J\033[H";
-                    //dumpTime(std::cout);
-                    //std::cout << "  ";
-                    //std::cout << "Sent complement UDP to A" << std::endl;
+                if (!isActiveDelay) {
+                    if (!isRecv[queueNow]) {
+                        fakers[queueNow].send();
+                        //std::cout << "\033[2J\033[H";
+                        //dumpTime(std::cout);
+                        //std::cout << "  ";
+                        //std::cout << "Sent complement UDP to A" << std::endl;
+                    }
+                } else {
+                    if (!nfqs[queueNow].isEmpty()) {
+                        nfqs[queueNow].process();
+                    } else {
+                        fakers[queueNow].send();
+                    }
                 }
             }
         }

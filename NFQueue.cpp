@@ -3,6 +3,35 @@
 #include <cerrno>
 #include <stdexcept>
 
+uint64_t NFQueue::getWaitLength ()
+{
+    // TODO: The length when checked does not have to be the length we really need
+    // TODO: Maybe too much overhead in parsing stats with istream
+    std::ifstream statFile("/proc/net/netfilter/nfnetlink_queue");
+    if (!statFile.is_open()) {
+        throw std::runtime_error("failed to read queue stats");
+    }
+    std::string line;
+    uint16_t uselessLinesCnt = this->queueNum;
+    while (uselessLinesCnt--) {
+        std::getline(statFile, line);
+    }
+    uint64_t res{};
+    for (int i = 0; i < 3; ++i) {
+        statFile >> res;
+    }
+    return res;
+}
+
+bool NFQueue::isEmpty ()
+{
+    if (this->getWaitLength() == 0LL) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void NFQueue::process ()
 {
     ssize_t rvSize = recv(sockFd, packetBuffer.data(), packetBuffer.size(), NOFLAG);
