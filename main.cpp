@@ -89,9 +89,9 @@ try{
         isRecv.resize(nfqs.size(), {});
         for (int i = 0; i < rPoll; ++i) {
             for (int j = 0; j < nfqs.size(); ++j) {
-                if (evBuffer[i].data.fd == nfqs[i].sockFd) {
-                    nfqs[i].process();
-                    isRecv[i] = true;
+                if (evBuffer[i].data.fd == nfqs[j].sockFd) {
+                    nfqs[j].process();
+                    isRecv[j] = true;
                 }
             }
             if (evBuffer[i].data.fd == timerFd) {
